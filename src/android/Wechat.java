@@ -13,7 +13,9 @@ import android.webkit.URLUtil;
 
 import androidx.core.content.FileProvider;
 
+import com.tencent.mm.opensdk.constants.Build;
 import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
+import com.tencent.mm.opensdk.modelbiz.WXOpenCustomerServiceChat;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
 import com.tencent.mm.opensdk.modelmsg.SendMessageToWX;
 import com.tencent.mm.opensdk.modelmsg.WXAppExtendObject;
@@ -47,7 +49,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
+
 import org.apache.cordova.CordovaPreferences;
+
 import java.util.Date;
 
 public class Wechat extends CordovaPlugin {
@@ -64,7 +68,7 @@ public class Wechat extends CordovaPlugin {
     public static final String ERROR_WECHAT_RESPONSE_USER_CANCEL = "用户点击取消并返回";
     public static final String ERROR_WECHAT_RESPONSE_SENT_FAILED = "发送失败";
     public static final String ERROR_WECHAT_RESPONSE_AUTH_DENIED = "授权失败";
-    public static final String ERROR_WECHAT_RESPONSE_UNSUPPORT = "微信不支持";
+    public static final String ERROR_WECHAT_RESPONSE_UNSUPPORT = "当前版本微信不支持";
     public static final String ERROR_WECHAT_RESPONSE_UNKNOWN = "未知错误";
 
     public static final String EXTERNAL_STORAGE_IMAGE_PREFIX = "external://";
@@ -95,6 +99,8 @@ public class Wechat extends CordovaPlugin {
     public static final String KEY_ARG_MESSAGE_MEDIA_PATH = "path";
     public static final String KEY_ARG_MESSAGE_MEDIA_WITHSHARETICKET = "withShareTicket";
     public static final String KEY_ARG_MESSAGE_MEDIA_HDIMAGEDATA = "hdImageData";
+    public static final String KEY_ARG_CUSTOMER_SERVICE_CHAT_CORP_ID = "corpId";
+    public static final String KEY_ARG_CUSTOMER_SERVICE_CHAT_URL = "url";
 
     public static final int TYPE_WECHAT_SHARING_APP = 1;
     public static final int TYPE_WECHAT_SHARING_EMOTION = 2;
@@ -144,7 +150,7 @@ public class Wechat extends CordovaPlugin {
 
     /**
      * Get weixin api
-     * 
+     *
      * @param ctx
      * @return
      */
@@ -176,13 +182,14 @@ public class Wechat extends CordovaPlugin {
             return chooseInvoiceFromWX(args, callbackContext);
         } else if (action.equals("openMiniProgram")) {
             return openMiniProgram(args, callbackContext);
+        } else if (action.equals("openCustomerServiceChat")) {
+            return openCustomerServiceChat(args, callbackContext);
         }
 
         return false;
     }
 
-    protected boolean share(CordovaArgs args, final CallbackContext callbackContext)
-            throws JSONException {
+    protected boolean share(CordovaArgs args, final CallbackContext callbackContext) throws JSONException {
         final IWXAPI api = getWxAPI(cordova.getActivity());
 
         // check if installed
@@ -208,8 +215,8 @@ public class Wechat extends CordovaPlugin {
             JSONObject message = params.getJSONObject(KEY_ARG_MESSAGE);
             if (message.has(KEY_ARG_MESSAGE_MEDIA)) {
                 JSONObject media = message.getJSONObject(KEY_ARG_MESSAGE_MEDIA);
-                int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media
-                        .getInt(KEY_ARG_MESSAGE_MEDIA_TYPE) : TYPE_WECHAT_SHARING_MINI;
+                int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media.getInt(KEY_ARG_MESSAGE_MEDIA_TYPE)
+                        : TYPE_WECHAT_SHARING_MINI;
                 if (type == TYPE_WECHAT_SHARING_MINI) {
                     req.transaction = buildTransaction(KEY_ARG_MESSAGE_MEDIA_MINIPROGRAM);
                 }
@@ -410,8 +417,7 @@ public class Wechat extends CordovaPlugin {
         return true;
     }
 
-    protected WXMediaMessage buildSharingMessage(JSONObject params)
-            throws JSONException {
+    protected WXMediaMessage buildSharingMessage(JSONObject params) throws JSONException {
         Log.d(TAG, "Start building message.");
 
         // media parameters
@@ -438,8 +444,8 @@ public class Wechat extends CordovaPlugin {
             }
 
             // check types
-            int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media
-                    .getInt(KEY_ARG_MESSAGE_MEDIA_TYPE) : TYPE_WECHAT_SHARING_WEBPAGE;
+            int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media.getInt(KEY_ARG_MESSAGE_MEDIA_TYPE)
+                    : TYPE_WECHAT_SHARING_WEBPAGE;
 
             switch (type) {
                 case TYPE_WECHAT_SHARING_APP:
@@ -554,12 +560,10 @@ public class Wechat extends CordovaPlugin {
         }
 
         Uri contentUri = FileProvider.getUriForFile(webView.getContext(),
-                cordova.getActivity().getPackageName() + ".wechat.fileProvider",
-                file);
+                cordova.getActivity().getPackageName() + ".wechat.fileProvider", file);
 
         // 授权给微信访问路径
-        webView.getContext().grantUriPermission("com.tencent.mm",
-                contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        webView.getContext().grantUriPermission("com.tencent.mm", contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         return contentUri.toString();
     }
@@ -779,7 +783,7 @@ public class Wechat extends CordovaPlugin {
 
     /**
      * Get saved app id
-     * 
+     *
      * @param ctx
      * @return
      */
@@ -790,7 +794,7 @@ public class Wechat extends CordovaPlugin {
 
     /**
      * Save app id into SharedPreferences
-     * 
+     *
      * @param ctx
      * @param id
      */
@@ -839,6 +843,42 @@ public class Wechat extends CordovaPlugin {
             req.path = params.getString(KEY_ARG_MESSAGE_MEDIA_PATH); // 拉起小程序页面的可带参路径，不填默认拉起小程序首页
             req.miniprogramType = params.getInt(KEY_ARG_MESSAGE_MEDIA_MINIPROGRAMTYPE);// 可选打开 开发版，体验版和正式版
             api.sendReq(req);
+        } catch (Exception e) {
+            callbackContext.error(ERROR_INVALID_PARAMETERS);
+            Log.e(TAG, e.getMessage());
+        }
+        return true;
+    }
+
+    protected boolean openCustomerServiceChat(CordovaArgs args, CallbackContext callbackContext) {
+        currentCallbackContext = callbackContext;
+        String appId = getAppId(preferences);
+        ; // 填应用AppId
+        IWXAPI api = WXAPIFactory.createWXAPI(cordova.getActivity(), appId);
+
+        if (api.getWXAppSupportAPI() < Build.SUPPORT_OPEN_CUSTOMER_SERVICE_CHAT) {
+            // 当前版本微信不支持
+            callbackContext.error(ERROR_WECHAT_RESPONSE_UNSUPPORT);
+            return true;
+        }
+
+        final JSONObject params;
+        try {
+            params = args.getJSONObject(0);
+        } catch (JSONException e) {
+            callbackContext.error(ERROR_INVALID_PARAMETERS);
+            return true;
+        }
+
+        WXOpenCustomerServiceChat.Req req = new WXOpenCustomerServiceChat.Req();
+        try {
+            req.corpId = params.getString(KEY_ARG_CUSTOMER_SERVICE_CHAT_CORP_ID); // 企业ID
+            req.url = params.getString(KEY_ARG_CUSTOMER_SERVICE_CHAT_URL); // 客服URL
+            if (api.sendReq(req)) {
+                callbackContext.success();
+            } else {
+                callbackContext.error(ERROR_SEND_REQUEST_FAILED);
+            }
         } catch (Exception e) {
             callbackContext.error(ERROR_INVALID_PARAMETERS);
             Log.e(TAG, e.getMessage());

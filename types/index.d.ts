@@ -1,16 +1,10 @@
 declare namespace Wechat {
   interface SceneType {
-    /**
-     * 聊天界面
-     */
+    /** 聊天界面 */
     SESSION: 0;
-    /**
-     * 朋友圈
-     */
+    /** 朋友圈 */
     TIMELINE: 1;
-    /**
-     * 收藏
-     */
+    /** 收藏 */
     FAVORITE: 2;
   }
   const Scene: SceneType;
@@ -28,17 +22,11 @@ declare namespace Wechat {
   const Type: MediaType;
 
   interface MiniEnv {
-    /**
-     * 正式版
-     */
+    /** 正式版 */
     RELEASE: 0;
-    /**
-     * 测试版
-     */
+    /** 测试版 */
     TEST: 1;
-    /**
-     * 体验版
-     */
+    /** 体验版 */
     PREVIEW: 2;
   }
   const Mini: MiniEnv;
@@ -132,7 +120,7 @@ declare namespace Wechat {
       /**
        * 媒体类型
        *
-       * e.g. Wechat.Type.IMAGE
+       * @example Wechat.Type.IMAGE
        */
       type: MediaType[keyof MediaType];
       /**
@@ -198,7 +186,7 @@ declare namespace Wechat {
        *
        * type: Wechat.Type.MINI
        *
-       * e.g. Wechat.Mini.PREVIEW
+       * @example Wechat.Mini.PREVIEW
        */
       miniprogramType?: MiniEnv[keyof MiniEnv];
     };
@@ -217,7 +205,7 @@ declare namespace Wechat {
     /**
      * 发送的目标场景
      *
-     * e.g. Wechat.Scene.SESSION
+     * @example Wechat.Scene.SESSION
      */
     scene: SceneType[keyof SceneType];
   }
@@ -316,28 +304,34 @@ declare namespace Wechat {
     onError: (reason: string) => void
   ): void;
 
-  interface JumpToBizProfileParams {
-    info: string;
-    type: string;
-  }
-  function jumpToBizProfile(
-    params: JumpToBizProfileParams,
-    onSuccess: () => void,
-    onError: (reason: string) => void
-  ): void;
-
-  function jumpToWechat(
-    url: string,
-    onSuccess: () => void,
-    onError: (reason: string) => void
-  ): void;
-
   interface ChooseInvoiceFromWXParams {
     signType: string;
     cardSign: string;
     nonceStr: string;
     timeStamp: string;
   }
+
+  /**
+   * 拉起微信发票列表
+   * @link https://developers.weixin.qq.com/doc/offiaccount/WeChat_Invoice/E_Invoice/Reimburser_API_List.html#4
+   * @param params 参数
+   * @param onSuccess 成功回调
+   * @param onError 失败回调
+   * @example
+   * ```javascript
+   * const params = {
+   *     timeStamp: '1510198391', // timeStamp
+   *     signType: 'SHA1', // sign type
+   *     cardSign: 'dff450eeeed08120159d285e79737173aec3df94', // cardSign
+   *     nonceStr: '5598190f-5fb3-4bff-8314-fd189ab4e4b8', // nonce
+   * };
+   * Wechat.chooseInvoiceFromWX(params,function(data){
+   *     console.log(data);
+   * },function(){
+   *     alert('error');
+   * })
+   * ```
+   */
   function chooseInvoiceFromWX(
     params: ChooseInvoiceFromWXParams,
     onSuccess: () => void,
@@ -345,13 +339,68 @@ declare namespace Wechat {
   ): void;
 
   interface OpenMiniProgramParams {
+    /** 小程序原始id */
     userName: string;
+    /** 小程序页面路径，不填默认进入首页 */
     path: string;
-    miniprogramType: string;
+    /** 小程序类型：RELEASE发布版 TEST测试版 PREVIEW体验版 */
+    miniprogramType: MiniEnv[keyof MiniEnv];
   }
+
+  /**
+   * 拉起微信小程序
+   * @link https://developers.weixin.qq.com/doc/oplatform/Mobile_App/Launching_a_Mini_Program/Launching_a_Mini_Program.html
+   * @param params 参数
+   * @param onSuccess 成功回调
+   * @param onError 失败回调
+   * @example
+   * ```javascript
+   * const params = {
+   *     userName: 'gh_d43f693ca31f',
+   *     path: 'pages/index/index?name1=key1&name2=key2',
+   *     miniprogramType: Wechat.Mini.RELEASE
+   * };
+   * Wechat.openMiniProgram(params,function(data){
+   *     console.log(data);
+   * },function(){
+   *     alert('error');
+   * })
+   * ```
+   */
   function openMiniProgram(
     params: OpenMiniProgramParams,
     onSuccess: (data: { extMsg: string }) => void,
+    onError: (reason: string) => void
+  ): void;
+
+  interface OpenCustomerServiceChatParams {
+    /** 企业ID */
+    corpId: string;
+    /** 客服URL */
+    url: string;
+  }
+  /**
+   * 拉起微信客服
+   * @link https://developer.work.weixin.qq.com/document/28755
+   * @param params 参数
+   * @param onSuccess 成功回调
+   * @param onError 失败回调
+   * @example
+   * ```javascript
+   * Wechat.openCustomerServiceChat(
+   *   { corpId: 'corporate_id', url: 'https://work.weixin.qq.com/kfid/kfxxxxxx' },
+   *   function(data){
+   *     console.log(data)
+   *   },
+   *   function(reason){
+   *     console.log(reason)
+   *   }
+   * )
+   * ```
+   */
+  function openCustomerServiceChat(
+    params: OpenCustomerServiceChatParams,
+    onSuccess: (data: string) => void,
     onError: (reason: string) => void
   ): void;
 }
