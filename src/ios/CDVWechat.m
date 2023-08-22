@@ -502,7 +502,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 {
     NSDictionary *params = [command.arguments objectAtIndex:0];
     WXOpenCustomerServiceReq *req = [[WXOpenCustomerServiceReq alloc] init];
-    req.corpId = [params objectForKey:@"corpId"];  //企业ID
+    req.corpid = [params objectForKey:@"corpId"];  //企业ID
     req.url = [params objectForKey:@"url"];    //客服URL
     [WXApi sendReq:req completion:^(BOOL success) {
         if(success) {
