@@ -7,7 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
-import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.webkit.URLUtil;
@@ -15,6 +14,7 @@ import android.webkit.URLUtil;
 import androidx.core.content.FileProvider;
 
 import com.tencent.mm.opensdk.constants.Build;
+import com.tencent.mm.opensdk.modelbiz.ChooseCardFromWXCardPackage;
 import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
 import com.tencent.mm.opensdk.modelbiz.WXOpenCustomerServiceChat;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
@@ -24,35 +24,31 @@ import com.tencent.mm.opensdk.modelmsg.WXEmojiObject;
 import com.tencent.mm.opensdk.modelmsg.WXFileObject;
 import com.tencent.mm.opensdk.modelmsg.WXImageObject;
 import com.tencent.mm.opensdk.modelmsg.WXMediaMessage;
+import com.tencent.mm.opensdk.modelmsg.WXMiniProgramObject;
 import com.tencent.mm.opensdk.modelmsg.WXMusicObject;
 import com.tencent.mm.opensdk.modelmsg.WXTextObject;
 import com.tencent.mm.opensdk.modelmsg.WXVideoObject;
 import com.tencent.mm.opensdk.modelmsg.WXWebpageObject;
-import com.tencent.mm.opensdk.modelmsg.WXMiniProgramObject;
 import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
-import com.tencent.mm.opensdk.modelbiz.ChooseCardFromWXCardPackage;
-
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CordovaPreferences;
 import org.apache.cordova.PluginResult;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
-
-import org.apache.cordova.CordovaPreferences;
-
 import java.util.Date;
 
 public class Wechat extends CordovaPlugin {
@@ -185,10 +181,10 @@ public class Wechat extends CordovaPlugin {
             return openMiniProgram(args, callbackContext);
         } else if (action.equals("openCustomerServiceChat")) {
             return openCustomerServiceChat(args, callbackContext);
-        } else if (action.equals(("jsSubscribeForEvent"))) {
-            return subscribeForEvent(callbackContext);
-        } else if (action.equals("jsUnsubscribeFromEvent")) {
-            return unsubscribeFromEvent();
+        } else if (action.equals(("listenLaunchFromWX"))) {
+            return listenLaunchFromWX(callbackContext);
+        } else if (action.equals("unListenLaunchFromWX")) {
+            return unListenLaunchFromWX();
         }
 
         return false;
@@ -884,17 +880,17 @@ public class Wechat extends CordovaPlugin {
         return true;
     }
 
-    private static CallbackContext subscribeEventCallback;
+    private static CallbackContext listenLaunchFromWXCallback;
 
-    protected boolean subscribeForEvent(CallbackContext callbackContext) {
-        subscribeEventCallback = callbackContext;
-        Log.i(TAG, "init subscribeForEvent");
+    protected boolean listenLaunchFromWX(CallbackContext callbackContext) {
+        listenLaunchFromWXCallback = callbackContext;
+        Log.i(TAG, "init listenLaunchFromWX");
         tryToConsumeEvent(null);
         return true;
     }
 
-    protected boolean unsubscribeFromEvent() {
-        subscribeEventCallback = null;
+    protected boolean unListenLaunchFromWX() {
+        listenLaunchFromWXCallback = null;
         return true;
     }
 
@@ -902,12 +898,12 @@ public class Wechat extends CordovaPlugin {
      * Try to send event to the subscribers.
      */
     public static void tryToConsumeEvent(String message) {
-        if (message == null || subscribeEventCallback == null) {
+        if (message == null || listenLaunchFromWXCallback == null) {
             return;
         }
 
         Log.i(TAG, "wechat send message to js: " + message);
-        sendMessageToJs(message, subscribeEventCallback);
+        sendMessageToJs(message, listenLaunchFromWXCallback);
     }
 
     /**

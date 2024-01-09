@@ -391,15 +391,26 @@ declare namespace Wechat {
   ): void;
 
   /**
-   * 订阅微信开放标签<wx-open-launch-app>打开APP后的事件
-   * 重复多次订阅会覆盖，以最后订阅的事件为准
+   * 监听微信开放标签<wx-open-launch-app>打开APP后的事件
+   * 重复多次监听会覆盖，以最后监听的事件为准
    */
-  function subscribe(callback: (msg?: string) => void): void;
+  function listenLaunchFromWX(callback: (msg?: string) => void): void;
 
   /**
-   * 取消订阅微信开放标签<wx-open-launch-app>打开APP后的事件
+   * 取消监听微信开放标签<wx-open-launch-app>打开APP后的事件
    */
-  function unsubscribe(): void;
+  function unListenLaunchFromWX(): void;
+
+  /**
+   * 监听通过 universal link 打开 APP。
+   * **仅iOS有效**
+   */
+  function listenLaunchFromUL(callback: (url: string) => void): void;
+
+  /**
+   * 取消监听universal link 打开 APP的事件
+   */
+  function unListenLaunchFromUL(): void;
 }
 
 interface Window {

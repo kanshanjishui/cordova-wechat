@@ -1,4 +1,5 @@
 var exec = require("cordova/exec");
+var platform = require("cordova/platform")
 
 module.exports = {
   Scene: {
@@ -60,9 +61,9 @@ module.exports = {
     exec(onSuccess, onError, "Wechat", "openCustomerServiceChat", [params]);
   },
 
-  subscribe: function (callback) {
+  listenLaunchFromWX: function (callback) {
     if (!callback) {
-      console.warn("Cordova Wechat: can't subscribe to event without a callback");
+      console.warn("Cordova Wechat: can't listen to event without a callback");
       return;
     }
 
@@ -70,10 +71,29 @@ module.exports = {
       callback(msg);
     };
 
-    exec(innerCallback, null, "Wechat", "jsSubscribeForEvent", []);
+    exec(innerCallback, null, "Wechat", "listenLaunchFromWX", []);
   },
 
-  unsubscribe: function () {
-    exec(null, null, "Wechat", "jsUnsubscribeFromEvent", []);
+  unListenLaunchFromWX: function () {
+    exec(null, null, "Wechat", "unListenLaunchFromWX", []);
+  },
+
+  listenLaunchFromUL: function (callback) {
+    if (platform.id !== 'ios') return
+    if (!callback) {
+      console.warn("Cordova Wechat: can't listen to event without a callback");
+      return;
+    }
+
+    var innerCallback = function (msg) {
+      callback(msg);
+    };
+
+    exec(innerCallback, null, "Wechat", "listenLaunchFromUL", []);
+  },
+
+  unListenLaunchFromUL: function () {
+    if (platform.id !== 'ios') return
+    exec(null, null, "Wechat", "unListenLaunchFromUL", []);
   },
 };

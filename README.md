@@ -371,11 +371,32 @@ Wechat.openCustomerServiceChat(
 
 ```js
 // 监听开放标签拉起APP的事件
-Wechat.subscribe((extinfo) => {
+Wechat.listenLaunchFromWX((extinfo) => {
   // 已拉起APP，参数是extinfo
-  console.log("extinfo:", extinfo);
+  console.log("extinfo: ", extinfo);
 });
 
-// 取消订阅时间
-Wechat.unsubscribe();
+// 取消监听事件
+Wechat.unListenLaunchFromWX();
+```
+
+### iOS 通过 universal link 打开 APP
+
+**该方法仅 iOS 有效。**
+
+由于微信登录跳转回 APP 使用的是 universal link，所以该插件必须监听 universal link 打开 APP 的事件才能处理登录逻辑。
+
+但是这样会使[cordova-wtto00-universal-link](https://github.com/wtto00/cordova-wtto00-universal-link)插件监听的打开 APP 失效。
+
+所以添加此方法，如果两者同时存在的话，iOS 在微信的监听方法中处理；安卓在原插件处理即可，不受影响。
+
+```js
+// 监听universal link拉起APP的事件
+Wechat.listenLaunchFromUL((url) => {
+  // 已拉起APP，参数是url
+  console.log("universal link: ", url);
+});
+
+// 取消监听事件
+Wechat.unListenLaunchFromUL();
 ```
