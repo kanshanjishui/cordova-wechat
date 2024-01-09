@@ -33,6 +33,8 @@ enum  CDVWechatSharingType {
 - (void)openCustomerServiceChat: (CDVInvokedUrlCommand *)command;
 - (BOOL)handleUserActivity:(NSUserActivity *)userActivity;
 - (BOOL)handleWechatOpenURL:(NSURL *)url;
-- (void)jsSubscribeForEvent:(CDVInvokedUrlCommand *)command;
-- (void)jsUnsubscribeFromEvent:(CDVInvokedUrlCommand *)command;
+- (void)listenLaunchFromWX:(CDVInvokedUrlCommand *)command;
+- (void)unListenLaunchFromWX:(CDVInvokedUrlCommand *)command;
+- (void)listenLaunchFromUL:(CDVInvokedUrlCommand *)command;
+- (void)unListenLaunchFromUL:(CDVInvokedUrlCommand *)command;
 @end

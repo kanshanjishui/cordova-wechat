@@ -9,7 +9,8 @@
 static int const MAX_THUMBNAIL_SIZE = 320;
 
 @interface CDVWechat() {
-    NSString *subscribeEventCallback;
+    NSString *listenLaunchFromWXCallback;
+    NSString *listenLaunchFromULCallback;
 }
 
 @end
@@ -33,7 +34,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 - (void)isWXAppInstalled:(CDVInvokedUrlCommand *)command
 {
     CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:[WXApi isWXAppInstalled]];
-
+    
     [self.commandDelegate sendPluginResult:commandResult callbackId:command.callbackId];
 }
 
@@ -45,7 +46,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
         [self failWithCallbackID:command.callbackId withMessage:@"未安装微信"];
         return ;
     }
-
+    
     // check arguments
     NSDictionary *params = [command.arguments objectAtIndex:0];
     if (!params)
@@ -53,12 +54,12 @@ static int const MAX_THUMBNAIL_SIZE = 320;
         [self failWithCallbackID:command.callbackId withMessage:@"参数格式错误"];
         return ;
     }
-
+    
     // save the callback id
     self.currentCallbackId = command.callbackId;
-
+    
     SendMessageToWXReq* req = [[SendMessageToWXReq alloc] init];
-
+    
     // check the scene
     if ([params objectForKey:@"scene"])
     {
@@ -68,14 +69,14 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     {
         req.scene = WXSceneTimeline;
     }
-
+    
     // message or text?
     NSDictionary *message = [params objectForKey:@"message"];
-
+    
     if (message)
     {
         req.bText = NO;
-
+        
         // async
         [self.commandDelegate runInBackground:^{
             req.message = [self buildSharingMessage:message];
@@ -83,7 +84,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
             [WXApi sendReq:(BaseReq *)req completion:^(BOOL success) {
                 if (!success) {
                     [self failWithCallbackID:command.callbackId withMessage:@"发送请求失败"];
-                                   self.currentCallbackId = nil;
+                    self.currentCallbackId = nil;
                 }
             }];
         }];
@@ -92,11 +93,11 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     {
         req.bText = YES;
         req.text = [params objectForKey:@"text"];
-
+        
         [WXApi sendReq:(BaseReq *)req completion:^(BOOL success) {
             if (!success) {
                 [self failWithCallbackID:command.callbackId withMessage:@"发送请求失败"];
-                               self.currentCallbackId = nil;
+                self.currentCallbackId = nil;
             }
         }];
     }
@@ -104,9 +105,9 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 
 - (void)sendAuthRequest:(CDVInvokedUrlCommand *)command
 {
-
+    
     SendAuthReq* req =[[SendAuthReq alloc] init];
-
+    
     // scope
     if ([command.arguments count] > 0)
     {
@@ -116,13 +117,13 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     {
         req.scope = @"snsapi_userinfo";
     }
-
+    
     // state
     if ([command.arguments count] > 1)
     {
         req.state = [command.arguments objectAtIndex:1];
     }
-
+    
     [WXApi sendAuthReq:req viewController:self.viewController delegate:self completion:^(BOOL success) {
         if(success) {
             self.currentCallbackId = command.callbackId;
@@ -141,7 +142,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
         [self failWithCallbackID:command.callbackId withMessage:@"参数格式错误"];
         return ;
     }
-
+    
     // check required parameters
     NSArray *requiredParams;
     if ([params objectForKey:@"mch_id"])
@@ -152,7 +153,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     {
         requiredParams = @[@"partnerid", @"prepayid", @"timestamp", @"noncestr", @"sign"];
     }
-
+    
     for (NSString *key in requiredParams)
     {
         if (![params objectForKey:key])
@@ -161,15 +162,15 @@ static int const MAX_THUMBNAIL_SIZE = 320;
             return ;
         }
     }
-
+    
     PayReq *req = [[PayReq alloc] init];
-
+    
     // NSString *appId = [params objectForKey:requiredParams[5]];
     // if (appId && ![appId isEqualToString:self.wechatAppId]) {
     //     self.wechatAppId = appId;
     //     [WXApi registerApp: appId];
     // }
-
+    
     req.partnerId = [params objectForKey:requiredParams[0]];
     req.prepayId = [params objectForKey:requiredParams[1]];
     req.timeStamp = [[params objectForKey:requiredParams[2]] intValue];
@@ -178,11 +179,11 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     req.sign = [params objectForKey:requiredParams[4]];
     
     [WXApi sendReq:(BaseReq *)req completion:^(BOOL success) {
-       if (success) {
-           self.currentCallbackId = command.callbackId;
-       } else {
-           [self failWithCallbackID:command.callbackId withMessage:@"发送请求失败"];
-       }
+        if (success) {
+            self.currentCallbackId = command.callbackId;
+        } else {
+            [self failWithCallbackID:command.callbackId withMessage:@"发送请求失败"];
+        }
     }];
 }
 
@@ -222,7 +223,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
         LaunchFromWXReq* launchReq = (LaunchFromWXReq*)req;
         WXMediaMessage *msg = launchReq.message;
         NSString *extinfo = msg.messageExt;
-        [self tryToConsumeEvent:extinfo];
+        [self tryToConsumeEvent:extinfo withCallback:listenLaunchFromWXCallback];
     }
 }
 
@@ -231,37 +232,37 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     BOOL success = NO;
     NSString *message = @"Unknown";
     NSDictionary *response = nil;
-
+    
     switch (resp.errCode)
     {
         case WXSuccess:
             success = YES;
             break;
-
+            
         case WXErrCodeCommon:
             message = @"普通错误";
             break;
-
+            
         case WXErrCodeUserCancel:
             message = @"用户点击取消并返回";
             break;
-
+            
         case WXErrCodeSentFail:
             message = @"发送失败";
             break;
-
+            
         case WXErrCodeAuthDeny:
             message = @"授权失败";
             break;
-
+            
         case WXErrCodeUnsupport:
             message = @"微信不支持";
             break;
-
+            
         default:
             message = @"未知错误";
     }
-
+    
     if (success)
     {
         if ([resp isKindOfClass:[SendAuthResp class]])
@@ -269,44 +270,44 @@ static int const MAX_THUMBNAIL_SIZE = 320;
             // fix issue that lang and country could be nil for iPhone 6 which caused crash.
             SendAuthResp* authResp = (SendAuthResp*)resp;
             response = @{
-                         @"code": authResp.code != nil ? authResp.code : @"",
-                         @"state": authResp.state != nil ? authResp.state : @"",
-                         @"lang": authResp.lang != nil ? authResp.lang : @"",
-                         @"country": authResp.country != nil ? authResp.country : @"",
-                         };
-
+                @"code": authResp.code != nil ? authResp.code : @"",
+                @"state": authResp.state != nil ? authResp.state : @"",
+                @"lang": authResp.lang != nil ? authResp.lang : @"",
+                @"country": authResp.country != nil ? authResp.country : @"",
+            };
+            
             CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:response];
-
+            
             [self.commandDelegate sendPluginResult:commandResult callbackId:self.currentCallbackId];
         }
         else if([resp isKindOfClass:[WXChooseInvoiceResp class]]){
-                    WXChooseInvoiceResp* invoiceResp = (WXChooseInvoiceResp *)resp;
-
-        //            response = @{
-        //                         @"data":invoiceResp.cardAry
-        //                         }
-                    NSMutableArray *arrM = [[NSMutableArray alloc] init];
-                    NSDictionary *mutableDic = nil;
-                    for(WXInvoiceItem *invoiceItem in invoiceResp.cardAry){
-                        mutableDic = @{
-                                       @"cardId": invoiceItem.cardId,
-                                       @"encryptCode": invoiceItem.encryptCode,
-                                       };
-                        [arrM addObject:mutableDic];
-                    }
-                    response = @{
-                                 @"data": arrM
-                                 };
-                    NSLog(@"response======= %@", response);
-                    CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:response];
-                    [self.commandDelegate sendPluginResult:commandResult callbackId:self.currentCallbackId];
-                }
+            WXChooseInvoiceResp* invoiceResp = (WXChooseInvoiceResp *)resp;
+            
+            //            response = @{
+            //                         @"data":invoiceResp.cardAry
+            //                         }
+            NSMutableArray *arrM = [[NSMutableArray alloc] init];
+            NSDictionary *mutableDic = nil;
+            for(WXInvoiceItem *invoiceItem in invoiceResp.cardAry){
+                mutableDic = @{
+                    @"cardId": invoiceItem.cardId,
+                    @"encryptCode": invoiceItem.encryptCode,
+                };
+                [arrM addObject:mutableDic];
+            }
+            response = @{
+                @"data": arrM
+            };
+            NSLog(@"response======= %@", response);
+            CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:response];
+            [self.commandDelegate sendPluginResult:commandResult callbackId:self.currentCallbackId];
+        }
         else if ([resp isKindOfClass:[WXLaunchMiniProgramResp class]])
         {
             NSString *extMsg = resp.extMsg;
             response = @{
-                         @"extMsg": extMsg
-                         };
+                @"extMsg": extMsg
+            };
             CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:response];
             [self.commandDelegate sendPluginResult:commandResult callbackId:self.currentCallbackId];
         }
@@ -319,7 +320,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     {
         [self failWithCallbackID:self.currentCallbackId withMessage:message];
     }
-
+    
     [self pluginInitialize];
     self.currentCallbackId = nil;
 }
@@ -329,7 +330,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 - (void)handleOpenURL:(NSNotification *)notification
 {
     NSURL* url = [notification object];
-
+    
     if ([url isKindOfClass:[NSURL class]] && [url.scheme isEqualToString:self.wechatAppId])
     {
         [WXApi handleOpenURL:url delegate:self];
@@ -350,7 +351,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     {
         [wxMediaMessage setThumbImage:[self getUIImageFromURL:[message objectForKey:@"thumb"]]];
     }
-
+    
     // media parameters
     id mediaObject = nil;
     WXMiniProgramObject *object;
@@ -364,29 +365,29 @@ static int const MAX_THUMBNAIL_SIZE = 320;
             ((WXAppExtendObject*)mediaObject).extInfo = [media objectForKey:@"extInfo"];
             ((WXAppExtendObject*)mediaObject).url = [media objectForKey:@"url"];
             break;
-
+            
         case CDVWXSharingTypeEmotion:
             mediaObject = [WXEmoticonObject object];
             ((WXEmoticonObject*)mediaObject).emoticonData = [self getNSDataFromURL:[media objectForKey:@"emotion"]];
             break;
-
+            
         case CDVWXSharingTypeFile:
             mediaObject = [WXFileObject object];
             ((WXFileObject*)mediaObject).fileData = [self getNSDataFromURL:[media objectForKey:@"file"]];
             ((WXFileObject*)mediaObject).fileExtension = [media objectForKey:@"fileExtension"];
             break;
-
+            
         case CDVWXSharingTypeImage:
             mediaObject = [WXImageObject object];
             ((WXImageObject*)mediaObject).imageData = [self getNSDataFromURL:[media objectForKey:@"image"]];
             break;
-
+            
         case CDVWXSharingTypeMusic:
             mediaObject = [WXMusicObject object];
             ((WXMusicObject*)mediaObject).musicUrl = [media objectForKey:@"musicUrl"];
             ((WXMusicObject*)mediaObject).musicDataUrl = [media objectForKey:@"musicDataUrl"];
             break;
-
+            
         case CDVWXSharingTypeVideo:
             mediaObject = [WXVideoObject object];
             ((WXVideoObject*)mediaObject).videoUrl = [media objectForKey:@"videoUrl"];
@@ -407,7 +408,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
             mediaObject = [WXWebpageObject object];
             ((WXWebpageObject *)mediaObject).webpageUrl = [media objectForKey:@"webpageUrl"];
     }
-
+    
     wxMediaMessage.mediaObject = mediaObject;
     return wxMediaMessage;
 }
@@ -415,7 +416,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 - (NSData *)getNSDataFromURL:(NSString *)url
 {
     NSData *data = nil;
-
+    
     if ([url hasPrefix:@"http://"] || [url hasPrefix:@"https://"])
     {
         data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
@@ -437,7 +438,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
         url = [[NSBundle mainBundle] pathForResource:[url stringByDeletingPathExtension] ofType:[url pathExtension]];
         data = [NSData dataWithContentsOfFile:url];
     }
-
+    
     return data;
 }
 
@@ -445,12 +446,12 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 {
     NSData *data = [self getNSDataFromURL:url];
     UIImage *image = [UIImage imageWithData:data];
-
+    
     if (image.size.width > MAX_THUMBNAIL_SIZE || image.size.height > MAX_THUMBNAIL_SIZE)
     {
         CGFloat width = 0;
         CGFloat height = 0;
-
+        
         // calculate size
         if (image.size.width > image.size.height)
         {
@@ -462,16 +463,16 @@ static int const MAX_THUMBNAIL_SIZE = 320;
             height = MAX_THUMBNAIL_SIZE;
             width = height * image.size.width / image.size.height;
         }
-
+        
         // scale it
         UIGraphicsBeginImageContext(CGSizeMake(width, height));
         [image drawInRect:CGRectMake(0, 0, width, height)];
         UIImage *scaled = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
-
+        
         return scaled;
     }
-
+    
     return image;
 }
 
@@ -506,7 +507,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     launchMiniProgramReq.miniProgramType = (int)[[params objectForKey:@"miniprogramType"] integerValue]; //拉起小程序的类型
     [WXApi sendReq:launchMiniProgramReq completion:^(BOOL success) {
         if(success) {
-             self.currentCallbackId = command.callbackId;
+            self.currentCallbackId = command.callbackId;
         } else {
             [self failWithCallbackID:command.callbackId withMessage:@"打开请求失败"];
         }
@@ -521,7 +522,7 @@ static int const MAX_THUMBNAIL_SIZE = 320;
     req.url = [params objectForKey:@"url"];    //客服URL
     [WXApi sendReq:req completion:^(BOOL success) {
         if(success) {
-             self.currentCallbackId = command.callbackId;
+            self.currentCallbackId = command.callbackId;
         } else {
             [self failWithCallbackID:command.callbackId withMessage:@"打开请求失败"];
         }
@@ -529,7 +530,9 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 }
 
 - (BOOL)handleUserActivity:(NSUserActivity *)userActivity {
-   return [WXApi handleOpenUniversalLink:userActivity delegate:self];
+    NSString *url = userActivity.webpageURL.absoluteString;
+    [self tryToConsumeEvent:url withCallback:listenLaunchFromULCallback];
+    return [WXApi handleOpenUniversalLink:userActivity delegate:self];
 }
 
 - (BOOL)handleWechatOpenURL:(NSURL *)url  {
@@ -543,23 +546,32 @@ static int const MAX_THUMBNAIL_SIZE = 320;
  *  If there is a subscriber for the event - it will be consumed.
  *  If not - it will stay until someone subscribes to it.
  */
-- (void)tryToConsumeEvent:(NSString *)message {
-    if (message == nil || subscribeEventCallback == nil) {
+- (void)tryToConsumeEvent:(NSString *)message withCallback:(NSString *)listenCallback {
+    if (message == nil || listenCallback == nil) {
         return;
     }
     CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:message];
     [commandResult setKeepCallbackAsBool:TRUE];
-    [self.commandDelegate sendPluginResult:commandResult callbackId:subscribeEventCallback];
+    [self.commandDelegate sendPluginResult:commandResult callbackId:listenCallback];
 }
+
 #pragma mark Methods, available from JavaScript side
 
-- (void)jsSubscribeForEvent:(CDVInvokedUrlCommand *)command {
-    subscribeEventCallback = command.callbackId;
-    [self tryToConsumeEvent:nil];
+- (void)listenLaunchFromWX:(CDVInvokedUrlCommand *)command {
+    listenLaunchFromWXCallback = command.callbackId;
+    [self tryToConsumeEvent:nil withCallback:listenLaunchFromWXCallback];
 }
 
-- (void)jsUnsubscribeFromEvent:(CDVInvokedUrlCommand *)command {
-    subscribeEventCallback = nil;
+- (void)unListenLaunchFromWX:(CDVInvokedUrlCommand *)command {
+    listenLaunchFromWXCallback = nil;
 }
 
+- (void)listenLaunchFromUL:(CDVInvokedUrlCommand *)command {
+    listenLaunchFromULCallback = command.callbackId;
+    [self tryToConsumeEvent:nil withCallback:listenLaunchFromULCallback];
+}
+
+- (void)unListenLaunchFromUL:(CDVInvokedUrlCommand *)command {
+    listenLaunchFromULCallback = nil;
+}
 @end
