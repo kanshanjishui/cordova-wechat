@@ -79,7 +79,7 @@ module.exports = {
   },
 
   listenLaunchFromUL: function (callback) {
-    if (platform !== 'ios') return
+    if (platform.id !== 'ios') return
     if (!callback) {
       console.warn("Cordova Wechat: can't listen to event without a callback");
       return;
@@ -93,7 +93,7 @@ module.exports = {
   },
 
   unListenLaunchFromUL: function () {
-    if (platform !== 'ios') return
+    if (platform.id !== 'ios') return
     exec(null, null, "Wechat", "unListenLaunchFromUL", []);
   },
 };
