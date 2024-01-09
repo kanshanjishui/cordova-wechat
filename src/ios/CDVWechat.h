@@ -2,8 +2,6 @@
 //  CDVWechat.h
 //  cordova-plugin-wechat
 //
-//  Created by xu.li on 12/23/13.
-//
 //
 
 #import <Cordova/CDV.h>
@@ -35,4 +33,6 @@ enum  CDVWechatSharingType {
 - (void)openCustomerServiceChat: (CDVInvokedUrlCommand *)command;
 - (BOOL)handleUserActivity:(NSUserActivity *)userActivity;
 - (BOOL)handleWechatOpenURL:(NSURL *)url;
+- (void)jsSubscribeForEvent:(CDVInvokedUrlCommand *)command;
+- (void)jsUnsubscribeFromEvent:(CDVInvokedUrlCommand *)command;
 @end

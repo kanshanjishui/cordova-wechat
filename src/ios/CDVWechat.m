@@ -2,13 +2,17 @@
 //  CDVWechat.m
 //  cordova-plugin-wechat
 //
-//  Created by xu.li on 12/23/13.
-//
 //
 
 #import "CDVWechat.h"
 
 static int const MAX_THUMBNAIL_SIZE = 320;
+
+@interface CDVWechat() {
+    NSString *subscribeEventCallback;
+}
+
+@end
 
 @implementation CDVWechat
 
@@ -203,12 +207,23 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 
 #pragma mark "WXApiDelegate"
 
-/**
- * Not implemented
+/*! @brief 收到一个来自微信的请求，第三方应用程序处理完后调用sendResp向微信发送结果
+ *
+ * 收到一个来自微信的请求，异步处理完成后必须调用sendResp发送处理结果给微信。
+ * 可能收到的请求有GetMessageFromWXReq、ShowMessageFromWXReq等。
+ * @param req 具体请求内容，是自动释放的
  */
 - (void)onReq:(BaseReq *)req
 {
     NSLog(@"%@", req);
+    //获取开放标签传递的extinfo数据逻辑
+    if ([req isKindOfClass:[LaunchFromWXReq class]])
+    {
+        LaunchFromWXReq* launchReq = (LaunchFromWXReq*)req;
+        WXMediaMessage *msg = launchReq.message;
+        NSString *extinfo = msg.messageExt;
+        [self tryToConsumeEvent:extinfo];
+    }
 }
 
 - (void)onResp:(WXLaunchMiniProgramResp *)resp
@@ -519,6 +534,32 @@ static int const MAX_THUMBNAIL_SIZE = 320;
 
 - (BOOL)handleWechatOpenURL:(NSURL *)url  {
     return [WXApi handleOpenURL:url delegate:self];
+}
+
+#pragma mark Methods to send data to JavaScript
+
+/**
+ *  Try to send event to the web page.
+ *  If there is a subscriber for the event - it will be consumed.
+ *  If not - it will stay until someone subscribes to it.
+ */
+- (void)tryToConsumeEvent:(NSString *)message {
+    if (message == nil || subscribeEventCallback == nil) {
+        return;
+    }
+    CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:message];
+    [commandResult setKeepCallbackAsBool:TRUE];
+    [self.commandDelegate sendPluginResult:commandResult callbackId:subscribeEventCallback];
+}
+#pragma mark Methods, available from JavaScript side
+
+- (void)jsSubscribeForEvent:(CDVInvokedUrlCommand *)command {
+    subscribeEventCallback = command.callbackId;
+    [self tryToConsumeEvent:nil];
+}
+
+- (void)jsUnsubscribeFromEvent:(CDVInvokedUrlCommand *)command {
+    subscribeEventCallback = nil;
 }
 
 @end
