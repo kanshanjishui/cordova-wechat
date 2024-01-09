@@ -5,11 +5,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.getaifun.MainActivity;
 import com.tencent.mm.opensdk.constants.ConstantsAPI;
 import com.tencent.mm.opensdk.modelbase.BaseReq;
 import com.tencent.mm.opensdk.modelbase.BaseResp;
 import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
+import com.tencent.mm.opensdk.modelmsg.ShowMessageFromWX;
+import com.tencent.mm.opensdk.modelmsg.WXMediaMessage;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler;
 import com.tencent.mm.opensdk.modelbiz.ChooseCardFromWXCardPackage;
@@ -63,7 +66,7 @@ public class EntryActivity extends Activity implements IWXAPIEventHandler {
 
         if (ctx == null) {
             startMainActivity();
-            return ;
+            return;
         }
 
         switch (resp.errCode) {
@@ -109,25 +112,42 @@ public class EntryActivity extends Activity implements IWXAPIEventHandler {
         finish();
     }
 
+    /**
+     * 从微信启动App
+     *
+     * @param req
+     */
     @Override
     public void onReq(BaseReq req) {
-        finish();
+        // 获取开放标签传递的 extinfo 数据逻辑
+        if (req.getType() == ConstantsAPI.COMMAND_SHOWMESSAGE_FROM_WX && req instanceof ShowMessageFromWX.Req) {
+            ShowMessageFromWX.Req showReq = (ShowMessageFromWX.Req) req;
+            WXMediaMessage mediaMsg = showReq.message;
+            String extInfo = mediaMsg.messageExt;
+            Log.i(Wechat.TAG, extInfo);
+            startMainActivity();
+
+            // store message and try to consume it
+            Wechat.tryToConsumeEvent(extInfo);
+
+            this.finish();
+        }
     }
 
     protected void startMainActivity() {
-        Intent intent = new Intent();
+        Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.setPackage(getApplicationContext().getPackageName());
-        getApplicationContext().startActivity(intent);
+        this.startActivity(intent);
     }
 
-    protected void launchMiniProResp(WXLaunchMiniProgram.Resp launchMiniProResp){
+    protected void launchMiniProResp(WXLaunchMiniProgram.Resp launchMiniProResp) {
         CallbackContext ctx = Wechat.getCurrentCallbackContext();
-        String extraData =launchMiniProResp.extMsg; //对应小程序组件 <button open-type="launchApp"> 中的 app-parameter 属性
+        String extraData = launchMiniProResp.extMsg; //对应小程序组件 <button open-type="launchApp"> 中的 app-parameter 属性
         JSONObject response = new JSONObject();
         try {
             response.put("extMsg", extraData);
-        }catch (Exception e){
+        } catch (Exception e) {
             Log.e(Wechat.TAG, e.getMessage());
         }
         ctx.success(response);
@@ -142,7 +162,7 @@ public class EntryActivity extends Activity implements IWXAPIEventHandler {
         CallbackContext ctx = Wechat.getCurrentCallbackContext();
 
         if (ctx == null) {
-            return ;
+            return;
         }
 
         JSONObject response = new JSONObject();
@@ -160,17 +180,17 @@ public class EntryActivity extends Activity implements IWXAPIEventHandler {
 
     protected void plunckInvoiceData(BaseResp resp) {
 
-            CallbackContext ctx = Wechat.getCurrentCallbackContext();
-            ChooseCardFromWXCardPackage.Resp resp1 = (ChooseCardFromWXCardPackage.Resp) resp;
-            JSONObject response = new JSONObject();
+        CallbackContext ctx = Wechat.getCurrentCallbackContext();
+        ChooseCardFromWXCardPackage.Resp resp1 = (ChooseCardFromWXCardPackage.Resp) resp;
+        JSONObject response = new JSONObject();
 
-            try {
-                JSONArray resp2 = new JSONArray(resp1.cardItemList);
-                response.put("data", resp2);
-            } catch (JSONException e) {
-                Log.e(Wechat.TAG, e.getMessage());
-            }
-
-            ctx.success(response);
+        try {
+            JSONArray resp2 = new JSONArray(resp1.cardItemList);
+            response.put("data", resp2);
+        } catch (JSONException e) {
+            Log.e(Wechat.TAG, e.getMessage());
         }
+
+        ctx.success(response);
+    }
 }

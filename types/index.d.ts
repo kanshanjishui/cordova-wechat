@@ -37,10 +37,7 @@ declare namespace Wechat {
    * @param onSuccess 成功回调
    * @param onError 失败回调
    */
-  function isInstalled(
-    onSuccess: (installed: number) => void,
-    onError: (reason: string) => void
-  ): void;
+  function isInstalled(onSuccess: (installed: number) => void, onError: (reason: string) => void): void;
 
   interface AuthResponse {
     /**
@@ -80,15 +77,8 @@ declare namespace Wechat {
    * Wechat.auth(function (response) { alert(response.code); });
    * ```
    */
-  function auth(
-    onSuccess: (response: AuthResponse) => void,
-    onError: (reason: string) => void
-  ): void;
-  function auth(
-    scope: string,
-    onSuccess: (response: AuthResponse) => void,
-    onError: (reason: string) => void
-  ): void;
+  function auth(onSuccess: (response: AuthResponse) => void, onError: (reason: string) => void): void;
+  function auth(scope: string, onSuccess: (response: AuthResponse) => void, onError: (reason: string) => void): void;
   function auth(
     scope: string,
     state: string,
@@ -239,11 +229,7 @@ declare namespace Wechat {
    * });
    * ```
    */
-  function share(
-    message: ShareMessage,
-    onSuccess: () => void,
-    onError: (reason: string) => void
-  ): void;
+  function share(message: ShareMessage, onSuccess: () => void, onError: (reason: string) => void): void;
 
   interface SendPaymentRequestParams {
     /**
@@ -403,6 +389,17 @@ declare namespace Wechat {
     onSuccess: (data: string) => void,
     onError: (reason: string) => void
   ): void;
+
+  /**
+   * 订阅微信开放标签<wx-open-launch-app>打开APP后的事件
+   * 重复多次订阅会覆盖，以最后订阅的事件为准
+   */
+  function subscribe(callback: (msg?: string) => void): void;
+
+  /**
+   * 取消订阅微信开放标签<wx-open-launch-app>打开APP后的事件
+   */
+  function unsubscribe(): void;
 }
 
 interface Window {

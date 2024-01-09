@@ -41,10 +41,7 @@ module.exports = {
       return exec(state, onSuccess, "Wechat", "sendAuthRequest", [scope]);
     }
 
-    return exec(onSuccess, onError, "Wechat", "sendAuthRequest", [
-      scope,
-      state,
-    ]);
+    return exec(onSuccess, onError, "Wechat", "sendAuthRequest", [scope, state]);
   },
 
   sendPaymentRequest: function (params, onSuccess, onError) {
@@ -61,5 +58,22 @@ module.exports = {
 
   openCustomerServiceChat: function (params, onSuccess, onError) {
     exec(onSuccess, onError, "Wechat", "openCustomerServiceChat", [params]);
+  },
+
+  subscribe: function (callback) {
+    if (!callback) {
+      console.warn("Cordova Wechat: can't subscribe to event without a callback");
+      return;
+    }
+
+    var innerCallback = function (msg) {
+      callback(msg);
+    };
+
+    exec(innerCallback, null, "Wechat", "jsSubscribeForEvent", []);
+  },
+
+  unsubscribe: function () {
+    exec(null, null, "Wechat", "jsUnsubscribeFromEvent", []);
   },
 };

@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.webkit.URLUtil;
@@ -184,6 +185,10 @@ public class Wechat extends CordovaPlugin {
             return openMiniProgram(args, callbackContext);
         } else if (action.equals("openCustomerServiceChat")) {
             return openCustomerServiceChat(args, callbackContext);
+        } else if (action.equals(("jsSubscribeForEvent"))) {
+            return subscribeForEvent(callbackContext);
+        } else if (action.equals("jsUnsubscribeFromEvent")) {
+            return unsubscribeFromEvent();
         }
 
         return false;
@@ -215,8 +220,7 @@ public class Wechat extends CordovaPlugin {
             JSONObject message = params.getJSONObject(KEY_ARG_MESSAGE);
             if (message.has(KEY_ARG_MESSAGE_MEDIA)) {
                 JSONObject media = message.getJSONObject(KEY_ARG_MESSAGE_MEDIA);
-                int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media.getInt(KEY_ARG_MESSAGE_MEDIA_TYPE)
-                        : TYPE_WECHAT_SHARING_MINI;
+                int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media.getInt(KEY_ARG_MESSAGE_MEDIA_TYPE) : TYPE_WECHAT_SHARING_MINI;
                 if (type == TYPE_WECHAT_SHARING_MINI) {
                     req.transaction = buildTransaction(KEY_ARG_MESSAGE_MEDIA_MINIPROGRAM);
                 }
@@ -444,8 +448,7 @@ public class Wechat extends CordovaPlugin {
             }
 
             // check types
-            int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media.getInt(KEY_ARG_MESSAGE_MEDIA_TYPE)
-                    : TYPE_WECHAT_SHARING_WEBPAGE;
+            int type = media.has(KEY_ARG_MESSAGE_MEDIA_TYPE) ? media.getInt(KEY_ARG_MESSAGE_MEDIA_TYPE) : TYPE_WECHAT_SHARING_WEBPAGE;
 
             switch (type) {
                 case TYPE_WECHAT_SHARING_APP:
@@ -484,8 +487,7 @@ public class Wechat extends CordovaPlugin {
                 case TYPE_WECHAT_SHARING_IMAGE:
                     // 分享大图，使用 content:// 链接
                     // https://developers.weixin.qq.com/community/develop/doc/0004886026c1a8402d2a040ee5b401
-                    String path = getImageFile(message.getJSONObject(KEY_ARG_MESSAGE_MEDIA),
-                            KEY_ARG_MESSAGE_MEDIA_IMAGE);
+                    String path = getImageFile(message.getJSONObject(KEY_ARG_MESSAGE_MEDIA), KEY_ARG_MESSAGE_MEDIA_IMAGE);
                     if (path != null) {
                         WXImageObject imageObject = new WXImageObject();
                         imageObject.setImagePath(path);
@@ -517,8 +519,7 @@ public class Wechat extends CordovaPlugin {
                         wxMediaMessage = new WXMediaMessage(miniProgramObj);
                         wxMediaMessage.title = message.getString(KEY_ARG_MESSAGE_TITLE); // 小程序消息title
                         wxMediaMessage.description = message.getString(KEY_ARG_MESSAGE_DESCRIPTION); // 小程序消息desc
-                        wxMediaMessage.thumbData = Util
-                                .readBytes(getFileInputStream(media.getString(KEY_ARG_MESSAGE_MEDIA_HDIMAGEDATA))); // 小程序消息封面图片，小于128k
+                        wxMediaMessage.thumbData = Util.readBytes(getFileInputStream(media.getString(KEY_ARG_MESSAGE_MEDIA_HDIMAGEDATA))); // 小程序消息封面图片，小于128k
                         return wxMediaMessage;
                     } catch (Exception e) {
                         Log.e(TAG, e.getMessage());
@@ -559,8 +560,7 @@ public class Wechat extends CordovaPlugin {
             return null;
         }
 
-        Uri contentUri = FileProvider.getUriForFile(webView.getContext(),
-                cordova.getActivity().getPackageName() + ".wechat.fileProvider", file);
+        Uri contentUri = FileProvider.getUriForFile(webView.getContext(), cordova.getActivity().getPackageName() + ".wechat.fileProvider", file);
 
         // 授权给微信访问路径
         webView.getContext().grantUriPermission("com.tencent.mm", contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -644,8 +644,7 @@ public class Wechat extends CordovaPlugin {
             // scale
             if (maxSize > 0 && (options.outWidth > maxSize || options.outHeight > maxSize)) {
 
-                Log.d(TAG, String.format("Bitmap was decoded, dimension: %d x %d, max allowed size: %d.",
-                        options.outWidth, options.outHeight, maxSize));
+                Log.d(TAG, String.format("Bitmap was decoded, dimension: %d x %d, max allowed size: %d.", options.outWidth, options.outHeight, maxSize));
 
                 int width = 0;
                 int height = 0;
@@ -740,8 +739,7 @@ public class Wechat extends CordovaPlugin {
 
             } else if (url.startsWith(EXTERNAL_STORAGE_IMAGE_PREFIX)) { // external path
 
-                url = Environment.getExternalStorageDirectory().getAbsolutePath()
-                        + url.substring(EXTERNAL_STORAGE_IMAGE_PREFIX.length());
+                url = Environment.getExternalStorageDirectory().getAbsolutePath() + url.substring(EXTERNAL_STORAGE_IMAGE_PREFIX.length());
                 inputStream = new FileInputStream(url);
 
                 Log.d(TAG, String.format("File is located on external storage at %s.", url));
@@ -884,6 +882,44 @@ public class Wechat extends CordovaPlugin {
             Log.e(TAG, e.getMessage());
         }
         return true;
+    }
+
+    private static CallbackContext subscribeEventCallback;
+
+    protected boolean subscribeForEvent(CallbackContext callbackContext) {
+        subscribeEventCallback = callbackContext;
+        Log.i(TAG, "init subscribeForEvent");
+        tryToConsumeEvent(null);
+        return true;
+    }
+
+    protected boolean unsubscribeFromEvent() {
+        subscribeEventCallback = null;
+        return true;
+    }
+
+    /**
+     * Try to send event to the subscribers.
+     */
+    public static void tryToConsumeEvent(String message) {
+        if (message == null || subscribeEventCallback == null) {
+            return;
+        }
+
+        Log.i(TAG, "wechat send message to js: " + message);
+        sendMessageToJs(message, subscribeEventCallback);
+    }
+
+    /**
+     * Send message to JS side.
+     *
+     * @param message  message to send
+     * @param callback to what callback we are sending the message
+     */
+    private static void sendMessageToJs(String message, CallbackContext callback) {
+        final PluginResult result = new PluginResult(PluginResult.Status.OK, message);
+        result.setKeepCallback(true);
+        callback.sendPluginResult(result);
     }
 
 }

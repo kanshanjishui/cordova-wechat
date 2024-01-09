@@ -2,15 +2,13 @@
 //  AppDelegate+Wechat.h
 //  cordova-plugin-wechat
 //
-//  Created by Jason.z on 26/2/20.
-//
 //
 
 #import "AppDelegate.h"
 
 @interface AppDelegate (Wechat)
 
-- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation;
-- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void (^)(NSArray * _Nullable))restorationHandler;
+- (BOOL)application:(UIApplication *_Nullable)application openURL:(NSURL *_Nullable)url sourceApplication:(NSString *_Nullable)sourceApplication annotation:(id _Nullable )annotation;
+- (BOOL)swizzleApplication:(UIApplication *_Nullable)application continueUserActivity:(NSUserActivity *_Nullable)userActivity restorationHandler:(void (^_Nullable)(NSArray * _Nullable))restorationHandler;
 
 @end

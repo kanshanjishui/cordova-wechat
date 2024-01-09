@@ -8,11 +8,7 @@
 - 🐛 修改不支持 Android 13 的问题
 - 🌟 改用在线最新微信 SDK 包
 - 🌟 支持拉起微信客服
-
-If this helps you a lot, please buy me a coffee.
-
-<a href="https://www.buymeacoffee.com/wtto00" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;max-width: 217px !important;" ></a>
-<a href="https://afdian.net/a/wtto00" target="_blank"><img style="height: 60px !important;max-width: 217px !important;" src="https://pic1.afdiancdn.com/static/img/welcome/button-sponsorme.jpg" alt="sponsorme"></a >
+- 🌟 支持微信开放标签拉起 APP
 
 ## 支持平台
 
@@ -367,4 +363,19 @@ Wechat.openCustomerServiceChat(
     console.log(reason);
   }
 );
+```
+
+### 微信公众号开放标签拉起 APP
+
+[官方文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_Open_Tag.html#%E8%B7%B3%E8%BD%ACAPP%EF%BC%9Awx-open-launch-app)
+
+```js
+// 监听开放标签拉起APP的事件
+Wechat.subscribe((extinfo) => {
+  // 已拉起APP，参数是extinfo
+  console.log("extinfo:", extinfo);
+});
+
+// 取消订阅时间
+Wechat.unsubscribe();
 ```
