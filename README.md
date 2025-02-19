@@ -18,13 +18,13 @@
 ## 安装
 
 ```shell
-cordova plugin add cordova-wtto00-wechat --variable WECHATAPPID=YOUR_WECHAT_APPID --variable UNIVERSALLINK=YOUR_UNIVERSAL_LINK
+cordova plugin add https://github.com/kanshanjishui/cordova-wechat.git --variable WECHATAPPID=YOUR_WECHAT_APPID --variable UNIVERSALLINK=YOUR_UNIVERSAL_LINK
 ```
 
 ## 移除
 
 ```shell
-cordova plugin rm cordova-plugin-wechat --variable WECHATAPPID=YOUR_WECHAT_APPID --variable UNIVERSALLINK=YOUR_UNIVERSAL_LINK
+cordova plugin rm https://github.com/kanshanjishui/cordova-wechat.git --variable WECHATAPPID=YOUR_WECHAT_APPID --variable UNIVERSALLINK=YOUR_UNIVERSAL_LINK
 ```
 
 ## 用法
