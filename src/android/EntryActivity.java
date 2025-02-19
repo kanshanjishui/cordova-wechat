@@ -1,11 +1,11 @@
-package __PACKAGE_NAME__;
+package __PACKAGE_NAME__.wxapi;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.getaifun.MainActivity;
+import __PACKAGE_NAME__.MainActivity;
 import com.tencent.mm.opensdk.constants.ConstantsAPI;
 import com.tencent.mm.opensdk.modelbase.BaseReq;
 import com.tencent.mm.opensdk.modelbase.BaseResp;
